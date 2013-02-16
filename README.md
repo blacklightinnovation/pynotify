@@ -1,0 +1,4 @@
+pynotify
+========
+
+Mass notification system
