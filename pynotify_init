@@ -1,0 +1,74 @@
+#! /bin/bash
+### BEGIN INIT INFO
+# Provides:          mylistener
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: This is the description.
+# Description:       This is the description.
+### END INIT INFO
+
+# Get function from functions library
+. /etc/init.d/functions
+DESC="PyNotify"
+DAEMON="/usr/local/bin/python /pynotify/pynotify.py"
+PIDFILE="/tmp/PyNotify.pid"
+LOCKFILE="/var/lock/subsys/PyNotify"
+
+is_running() {
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        if [ -n "$PID" ]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+start_pynotify() {
+    if ! is_running; then
+	cd /pynotify/
+        echo "Starting PyNotify"
+        nohup $DAEMON >> /var/log/messages 2>&1 &
+        RETVAL=$?
+        PID=$!
+        [ $RETVAL -eq 0 ] && touch $LOCKFILE && success || failure
+        echo $PID > $PIDFILE
+    else
+        echo "$DESC: already running (pid $PID)"
+    fi
+}
+
+stop_pynotify() {
+    if is_running; then
+        echo "Stopping $DESC"
+    	if [ -f $PIDFILE ]; then
+            PID=`cat $PIDFILE`
+            kill $PID
+            rm -f $PIDFILE
+            rm -f $LOCKFILE
+        fi
+    else
+        echo "$DESC: not running"
+    fi
+    [ -f $PIDFILE ] && rm -f $PIDFILE
+}
+
+case "$1" in
+  start)
+    start_pynotify
+    ;;
+  stop)
+    stop_pynotify
+    ;;
+  *)
+    echo "Useage: /etc/init.d/pynotify {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0
