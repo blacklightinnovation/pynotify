@@ -12,9 +12,15 @@ class EmailConsumer:
         
         data = json.loads(body);
         
-        self.mailserver.sendmail(self.config.get('email', 'from'),
-                                data['recipient'],
-                                data['message'])
+        try:
+            self.mailserver.sendmail(self.config.get('email', 'from'),
+                                    data['recipient'],
+                                    data['message'])
+        except:
+            self.connect()
+            self.mailserver.sendmail(self.config.get('email', 'from'),
+                                    data['recipient'],
+                                    data['message'])
         
 
     def __init__(self):
@@ -24,9 +30,7 @@ class EmailConsumer:
         self.config = ConfigParser.ConfigParser()
         self.config.read(['pynotify.ini', '../pynotify.ini'])
         
-        #connect to mail server
-        self.mailserver = smtplib.SMTP(self.config.get('email', 'host'),
-                                       self.config.get('email', 'port'))
+        self.connect()
         
         # connect to queue
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.config.get('main', 'ampq_host')))
@@ -49,6 +53,13 @@ class EmailConsumer:
         
     def stop(self):
         self.connection.close()
+        
+    def connect(self):
+        syslog.syslog("Connecting to email server")
+        #connect to mail server
+        self.mailserver = smtplib.SMTP(self.config.get('email', 'host'),
+                                       self.config.get('email', 'port'))
+                                       
 
 def main():
     consumer = EmailConsumer()
